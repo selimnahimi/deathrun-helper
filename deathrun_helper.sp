@@ -308,7 +308,7 @@ public Action:Command_PanelViewQueuePoints(client, args)
 	}
 	
 	// Sort players score in order in new array
-	for (int i = 1; i <= MaxClients; i++)
+	for (int i = 0; i <= MaxClients; i++)
 	{
 		for (int j = i; j <= MaxClients; j++)
 		{
