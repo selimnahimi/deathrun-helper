@@ -27,6 +27,9 @@ new playerQueuePoints[MAXPLAYERS + 1];	// Queue points
 new sortedQueuePoints[MAXPLAYERS + 1];
 new sortedIDs[MAXPLAYERS + 1];
 
+// Entity variables (they store the entity ID, not the entity itself)
+new ent_stalemate;
+
 public Plugin myinfo = 
 {
 	name = "Deathrun Helper",
@@ -128,8 +131,79 @@ stock Float:GetSpeedForTeam(client)
 public teamplay_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	InitializeRound();
+	CreateStaleMate();
 }
 
+/*
+ *	ARENA ROUND START
+*/
+//- Triggers when an arena round starts
+public arena_round_start(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	int blucount = CountTeamPlayers(TF_TEAM_BLU);
+	
+	if(blucount == 0)
+	{
+		PrintToChatAll("[DEATHRUN] No players as Death, restarting round");
+		StaleMate();
+	}
+}
+
+
+/*
+ *	STALEMATE
+*/
+//- Forces a stalemate via custom entity
+stock StaleMate()
+{
+	if (IsValidEntity(ent_stalemate))
+		AcceptEntityInput(ent_stalemate, "RoundWin");
+	else
+		PrintToServer("[DEATHRUN] Tried to call stalemate, but the entity doesn't exist...");
+}
+
+/*
+ *	STALEMATE ENTITY CREATION
+*/
+//- Creates a custom entity to trigger stalemate when needed
+stock CreateStaleMate()
+{
+	ent_stalemate = CreateEntityByName("game_round_win");
+	
+	if (IsValidEntity(ent_stalemate))
+	{
+		DispatchKeyValue(ent_stalemate, "force_map_reset", "1");
+		DispatchKeyValue(ent_stalemate, "targetname", "win_blue");
+		DispatchKeyValue(ent_stalemate, "teamnum", "0");
+		SetVariantInt(0);
+		AcceptEntityInput(ent_stalemate, "SetTeam");
+		if (!DispatchSpawn(ent_stalemate))
+			PrintToServer("[DEATHRUN] ENTITY ERROR Failed to dispatch stalemate entity");
+	}
+}
+
+/*
+ *	COUNT TEAM PLAYERS
+*/
+//- Count the amount of players in a team
+stock int CountTeamPlayers(team)
+{
+	int count = 0;
+	for (int i = 0; i <= MaxClients; i++)
+	{
+		if(IsValidClient(i, false))
+		{
+			if(GetClientTeam(i) == team) count++;
+		}
+	}
+	
+	return count;
+}
+
+/*
+ *	INITIALIZE ROUND
+*/
+//- Initializes a round
 stock InitializeRound()
 {
 	int max_points = -1; // Store the player ID with the most points
