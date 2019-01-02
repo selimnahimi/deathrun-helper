@@ -99,7 +99,7 @@ public OnClientPostAdminCheck(client)
 		{
 			if(!stop)
 			{
-				if(IsValidClient(i) && GetClientTeam(i) == TF_TEAM_RED)
+				if(IsValidClient(i, false) && GetClientTeam(i) == TF_TEAM_RED)
 				{
 					PrintCenterText(i, "You've been automatically selected as Death");
 					
