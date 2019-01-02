@@ -31,7 +31,7 @@ new sortedIDs[MAXPLAYERS + 1];
 new ent_stalemate;
 
 // Other
-bool roundStarted = false;
+bool roundStarted = true;
 
 public Plugin myinfo = 
 {
@@ -109,10 +109,10 @@ public SDKHooks_OnPreThink(client)
 			float speed = GetSpeedForTeam(client);
 			if(speed != -1.0) SetSpeed(client, speed);
 		}
-		else
-		{
-			SetSpeed(client, 0.0);
-		}
+		//else
+		//{
+		//	SetSpeed(client, 1);
+		//}
 	}
 }
 
