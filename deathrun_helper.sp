@@ -30,6 +30,9 @@ new sortedIDs[MAXPLAYERS + 1];
 // Entity variables (they store the entity ID, not the entity itself)
 new ent_stalemate;
 
+// Other
+bool roundStarted = false;
+
 public Plugin myinfo = 
 {
 	name = "Deathrun Helper",
@@ -100,8 +103,15 @@ public SDKHooks_OnPreThink(client)
 {
 	if(IsValidClient(client) && GetConVarBool(g_drSpeedEnabled))
 	{
-		float speed = GetSpeedForTeam(client);
-		if(speed != -1.0) SetSpeed(client, speed);
+		if(roundStarted)
+		{
+			float speed = GetSpeedForTeam(client);
+			if(speed != -1.0) SetSpeed(client, speed);
+		}
+		else
+		{
+			SetSpeed(client, -1.0);
+		}
 	}
 }
 
@@ -132,6 +142,7 @@ public teamplay_round_start(Handle:event, const String:name[], bool:dontBroadcas
 {
 	InitializeRound();
 	CreateStaleMate();
+	roundStarted = false;
 }
 
 /*
@@ -140,6 +151,8 @@ public teamplay_round_start(Handle:event, const String:name[], bool:dontBroadcas
 //- Triggers when an arena round starts
 public arena_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	roundStarted = true;
+	
 	int blucount = CountTeamPlayers(TF_TEAM_BLU);
 	
 	if(blucount == 0)
@@ -335,7 +348,7 @@ public Action:Command_PanelViewQueuePoints(client, args)
 	int done = 0;
 	for (int i = 0; i <= maxprint; i++)
 	{
-		if(IsValidClient(i, false) && sortedQueuePoints[i] != -1)
+		if(IsValidClient(sortedIDs[i], false) && sortedQueuePoints[i] != -1)
 		{
 			if(sortedIDs[i] != client)
 			{
@@ -397,12 +410,12 @@ public int PanelHandler_ResetQueuePoints(Menu menu, MenuAction action, int clien
 	{
 		if(selected == 1)
 		{
-		PrintToServer("%N has reset their queue points", client);
-		PrintToChat(client, "[DEATHRUN] Your queue points have been reset.");
+			PrintToServer("%N has reset their queue points", client);
+			PrintToChat(client, "[DEATHRUN] Your queue points have been reset.");
 		}
 		if(selected == 2)
 		{
-		PrintToChat(client, "[DEATHRUN] You canceled your point reset.");
+			PrintToChat(client, "[DEATHRUN] You canceled your point reset.");
 		}
 	}
 }
