@@ -89,28 +89,6 @@ public void OnPluginStart()
 public OnClientPostAdminCheck(client)
 {
 	playerQueuePoints[client] = 0; // Reset their queue points
-	
-	int blucount = CountTeamPlayers(TF_TEAM_BLU);
-	bool stop = false;
-	
-	if(blucount == 0)
-	{
-		for (int i = 0; i <= MaxClients; i++)
-		{
-			if(!stop)
-			{
-				if(IsValidClient(i, false) && GetClientTeam(i) == TF_TEAM_RED)
-				{
-					PrintCenterText(i, "You've been automatically selected as Death");
-					
-					// Safely change the player's team, and teleport them to spawn
-					ChangeClientTeam_Safe(i, TF_TEAM_BLU);
-					TeleportPlayerToSpawn(i, TF_TEAM_BLU);
-					stop = true;
-				}
-			}
-		}
-	}
 }
 
 public OnClientPutInServer(client)
@@ -297,14 +275,14 @@ public Action:Command_Jointeam(client, args)
 	else if (StrEqual(buffer, "blue", false)) newteam = TF_TEAM_BLU;
 	else if (StrEqual(buffer, "spectator", false)) return Plugin_Continue;
 	else newteam = TF_TEAM_RED; // Anything else drops the player to red
-		
+	
 	oldteam = GetClientTeam(client);
 	
 	if (newteam == oldteam)return Plugin_Handled;
 	
 	if(IsValidClient(client, false))
 	{
-		if(newteam == TF_TEAM_BLU)
+		if(newteam == TF_TEAM_BLU && CountTeamPlayers(TF_TEAM_BLU) != 0)
 		{
 			PrintCenterText(client, "You must wait for your turn!");
 			TF2_ChangeClientTeam(client, TFTeam_Red);
