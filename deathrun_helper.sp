@@ -331,9 +331,9 @@ public Action:Command_PanelViewQueuePoints(client, args)
 	Panel panel = new Panel();
 	panel.SetTitle("Death Queue");
 	
-	int maxprint = 9; // In case the current player is in the list, print 1 more player
-	int done = 1;
-	for (int i = 1; i <= maxprint; i++)
+	int maxprint = 8; // In case the current player is in the list, print 1 more player
+	int done = 0;
+	for (int i = 0; i <= maxprint; i++)
 	{
 		if(IsValidClient(i, false) && sortedQueuePoints[i] != -1)
 		{
