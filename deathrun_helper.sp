@@ -89,6 +89,23 @@ public void OnPluginStart()
 public OnClientPostAdminCheck(client)
 {
 	playerQueuePoints[client] = 0; // Reset their queue points
+	
+	int blucount = CountTeamPlayers(TF_TEAM_BLU);
+	
+	if(blucount == 0)
+	{
+		for (int i = 0; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i) && GetClientTeam(i) == TF_TEAM_RED)
+			{
+				PrintCenterText(i, "You've been automatically selected as Death");
+				
+				// Safely change the player's team, and teleport them to spawn
+				ChangeClientTeam_Safe(i, TF_TEAM_BLU);
+				TeleportPlayerToSpawn(i, TF_TEAM_BLU);
+			}
+		}
+	}
 }
 
 public OnClientPutInServer(client)
