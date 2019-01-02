@@ -127,6 +127,11 @@ stock Float:GetSpeedForTeam(client)
 //- Triggers when a round starts
 public teamplay_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	InitializeRound();
+}
+
+stock InitializeRound()
+{
 	int max_points = -1; // Store the player ID with the most points
 	
 	// Get the first valid client
@@ -350,7 +355,8 @@ stock TeleportPlayerToSpawn(client, team)
 	GetSpawnPointTeam(team, SpawnLoc);
 	
 	//PrintToServer("Found entity: %i %i %i", SpawnLoc[0], SpawnLoc[1], SpawnLoc[2]);
-	SetEntPropVector(client, Prop_Data, "m_vecAbsOrigin", SpawnLoc);
+	//SetEntPropVector(client, Prop_Data, "m_vecAbsOrigin", SpawnLoc); // BROKEN!!!
+	TeleportEntity(client, SpawnLoc, NULL_VECTOR, NULL_VECTOR);
 }
 
 /*
@@ -363,7 +369,9 @@ stock GetSpawnPointTeam(team, Float:buffer[3])
 	while ((index = FindEntityByClassname(index, "info_player_teamspawn")) != -1)
 	{
 		int teamnum = GetEntProp(index, Prop_Data, "m_iTeamNum");
-		//PrintToServer("Teamnum: %i", teamnum);
+		
+		//int spawnmode = GetEntProp(index, Prop_Data, "m_iszRoundRedSpawn");
+		//PrintToServer("Teamnum: %i spawnmode: %s", teamnum, buffer2);
 		
 		if(teamnum == team) // If spawnpoint is the given team's
 		{
