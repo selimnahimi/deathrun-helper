@@ -74,6 +74,7 @@ public void OnPluginStart()
 	
 	// H O O K S //
 	HookEvent("teamplay_round_start", teamplay_round_start);
+	HookEvent("arena_round_start", arena_round_start);
 	
 	// O T H E R //
 	LoadTranslations("common.phrases"); // Load common translation file
@@ -110,7 +111,7 @@ public SDKHooks_OnPreThink(client)
 		}
 		else
 		{
-			SetSpeed(client, -1.0);
+			SetSpeed(client, 0.0);
 		}
 	}
 }
