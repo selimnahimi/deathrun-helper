@@ -4,13 +4,17 @@ This plugin is made for **Team Fortress 2**, and specifically for **Deathrun** m
 # Features:
 - Only allows 1 player in the BLU team at a time.
 - Movement speed modifier for both teams
-- Queue system based on points
+- Queue system based on points, similar to Versus Saxxton Hale
     - Every round as a RED, you get 10 points for playing
     - Next round, the RED player with the most points gets to be BLU
     - As a BLU, your points are reset
 
-# CVars:
+# Commands:
+| Command | Description |
+| ------ | ------ |
+| !next | Open the queue menu to view queue and points |
 
+# CVars:
 | CVar | Default value | Description |
 | ------ | ------ | ------ |
 | dr_speed_blu | "400" | BLU team movement speed (in hammer units) |
