@@ -280,6 +280,11 @@ public arena_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 		PrintToChatAll("[DEATHRUN] No players as Death, restarting round");
 		Win(0);
 	}
+	else if(blucount >= 2)
+	{
+		PrintToChatAll("[DEATHRUN] Only 1 Death allowed, restarting match");
+		Win(0);
+	}
 }
 
 
