@@ -15,10 +15,21 @@
 #define TF_TEAM_BLU			3
 #define TF_TEAM_RED			2
 
+// Sounds
+#define SOUND_10SEC			"vo/announcer_ends_10sec.mp3"
+#define SOUND_5SEC			"vo/announcer_ends_5sec.mp3"
+#define SOUND_4SEC			"vo/announcer_ends_4sec.mp3"
+#define SOUND_3SEC			"vo/announcer_ends_3sec.mp3"
+#define SOUND_2SEC			"vo/announcer_ends_2sec.mp3"
+#define SOUND_1SEC			"vo/announcer_ends_1sec.mp3"
+
 // Convars
 Handle g_drBluSpeed;					// Movement speed for BLU
 Handle g_drRedSpeed;					// Movement speed for RED
 Handle g_drSpeedEnabled;				// Enable/Disable the movement speed modifier
+Handle g_drTimerEnabled;				// Enable/Disable the HUD timer
+Handle g_drTimerTime;					// Timer start time
+Handle g_drTimerTeam;					// Which team should win when the timer runs out (0: STALEMATE, 1: RED, 2: BLU)
 
 // Player variables
 new playerQueuePoints[MAXPLAYERS + 1];	// Queue points
@@ -29,9 +40,15 @@ new sortedIDs[MAXPLAYERS + 1];
 
 // Entity variables (they store the entity ID, not the entity itself)
 new ent_stalemate;
+new ent_bluwin;
+new ent_redwin;
+
+// Handles
+Handle hudTimer; 
 
 // Other
 bool roundStarted = true;
+float timerTime;
 
 public Plugin myinfo = 
 {
@@ -67,6 +84,9 @@ public void OnPluginStart()
 	g_drBluSpeed = CreateConVar("dr_speed_blu", "400", "BLU team movement speed (in hammer units)");
 	g_drRedSpeed = CreateConVar("dr_speed_red", "300", "RED team movement speed (in hammer units)");
 	g_drSpeedEnabled = CreateConVar("dr_speed_enabled", "1", "Enable/Disable the movement speed modifier");
+	g_drTimerEnabled = CreateConVar("dr_timer_enabled", "1", "Enable/Disable the HUD timer");
+	g_drTimerTime = CreateConVar("dr_timer_time", "300", "Timer start time");
+	g_drTimerTeam = CreateConVar("dr_timer_team", "2", "Which team should win when the timer runs out (0: STALEMATE, 1: RED, 2: BLU)");
 	
 	// C O M M A N D S //
 	RegConsoleCmd("jointeam", Command_Jointeam);
@@ -76,6 +96,9 @@ public void OnPluginStart()
 	HookEvent("teamplay_round_start", teamplay_round_start);
 	HookEvent("arena_round_start", arena_round_start);
 	
+	// H U D   E L E M E N T S //
+	hudTimer = CreateHudSynchronizer();
+	
 	// O T H E R //
 	LoadTranslations("common.phrases"); // Load common translation file
 	
@@ -84,6 +107,106 @@ public void OnPluginStart()
 		playerQueuePoints[i] = 0;
 		OnClientPutInServer(i);
 	}
+	
+	CreateTimer(1.0, UpdateTimers, _, TIMER_REPEAT);
+	Precache();
+}
+
+/*
+ *	PRECACHE
+*/
+//- Precaches sounds
+stock Precache()
+{
+	// S O U N D S //
+	PrecacheSound(SOUND_10SEC, true);
+	PrecacheSound(SOUND_5SEC, true);
+	PrecacheSound(SOUND_4SEC, true);
+	PrecacheSound(SOUND_3SEC, true);
+	PrecacheSound(SOUND_2SEC, true);
+	PrecacheSound(SOUND_1SEC, true);
+}
+
+/*
+ *	UPDATE TIMER
+*/
+//- Handles HUD timer
+public Action:UpdateTimers(Handle:timer)
+{
+	if(GetConVarBool(g_drTimerEnabled))
+	{
+		// If there is only 1 player, don't show the timer
+		if(GetClientCount() > 1)
+		{
+			for (int i = 1; i < MaxClients; i++)
+			{
+				if (IsValidClient(i, false))
+				{
+					SetHudTextParams(-1.0, 0.20, 2.0, 0, 0, 255, 255);
+					ShowSyncHudText(i, hudTimer, "%s", FormatTimer(timerTime));
+				}
+			}
+			
+			if (roundStarted)
+			{
+				if (timerTime > 0.0)
+				{
+					if (timerTime <= 10.0)
+					{
+						switch (timerTime)
+						{
+							case 10.0:
+								EmitSoundToAll(SOUND_10SEC);
+							case 5.0:
+								EmitSoundToAll(SOUND_5SEC);
+							case 4.0:
+								EmitSoundToAll(SOUND_4SEC);
+							case 3.0:
+								EmitSoundToAll(SOUND_3SEC);
+							case 2.0:
+								EmitSoundToAll(SOUND_2SEC);
+							case 1.0:
+								EmitSoundToAll(SOUND_1SEC);
+						}
+					}
+					timerTime--;
+				}
+				else
+				{
+					int winteam = GetConVarInt(g_drTimerTeam);
+					
+					if(winteam < 0 || winteam > 2)
+						winteam = 2;
+					
+					Win(winteam);
+				}
+			}
+		}
+	}
+}
+
+/*
+ *	FORMAT TIMER
+*/
+//- Returns a formatted time in mm:ss
+String:FormatTimer(float sec)
+{
+	int cTime = RoundFloat(sec);
+	int cmin = cTime / 60;
+	int csec = cTime % 60;
+	char ctext[32];
+	if (csec < 10 && cmin >= 10)
+		ctext = "%i:0%i";
+	else if (csec < 10 && cmin < 10)
+		ctext = "0%i:0%i";
+	else if (csec >= 10 && cmin < 10)
+		ctext = "0%i:%i";
+	else
+		ctext = "%i:%i";
+	
+	Format(ctext, sizeof(ctext), ctext, cmin, csec);
+	
+	return ctext;
 }
 
 /*
@@ -109,10 +232,6 @@ public SDKHooks_OnPreThink(client)
 			float speed = GetSpeedForTeam(client);
 			if(speed != -1.0) SetSpeed(client, speed);
 		}
-		//else
-		//{
-		//	SetSpeed(client, 1);
-		//}
 	}
 }
 
@@ -142,7 +261,7 @@ stock Float:GetSpeedForTeam(client)
 public teamplay_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	InitializeRound();
-	CreateStaleMate();
+	CreateWinEntities();
 	roundStarted = false;
 }
 
@@ -159,40 +278,72 @@ public arena_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 	if(blucount == 0)
 	{
 		PrintToChatAll("[DEATHRUN] No players as Death, restarting round");
-		StaleMate();
+		Win(0);
 	}
 }
 
 
 /*
- *	STALEMATE
+ *	WIN
 */
-//- Forces a stalemate via custom entity
-stock StaleMate()
+//- Forces a win for a team
+//+ team: 0: stalemate, 1: red, 2: blu
+stock Win(int team)
 {
-	if (IsValidEntity(ent_stalemate))
-		AcceptEntityInput(ent_stalemate, "RoundWin");
-	else
-		PrintToServer("[DEATHRUN] Tried to call stalemate, but the entity doesn't exist...");
+	switch(team)
+	{
+		case 1:
+			if (IsValidEntity(ent_redwin)) AcceptEntityInput(ent_redwin, "RoundWin");
+		case 2:
+			if (IsValidEntity(ent_bluwin)) AcceptEntityInput(ent_bluwin, "RoundWin");
+		default:
+			if (IsValidEntity(ent_stalemate)) AcceptEntityInput(ent_stalemate, "RoundWin");
+	}
 }
 
 /*
- *	STALEMATE ENTITY CREATION
+ *	WIN ENTITY CREATION
 */
-//- Creates a custom entity to trigger stalemate when needed
-stock CreateStaleMate()
+//- Creates custom entities to trigger team win when needed
+stock CreateWinEntities()
 {
 	ent_stalemate = CreateEntityByName("game_round_win");
 	
 	if (IsValidEntity(ent_stalemate))
 	{
 		DispatchKeyValue(ent_stalemate, "force_map_reset", "1");
-		DispatchKeyValue(ent_stalemate, "targetname", "win_blue");
+		DispatchKeyValue(ent_stalemate, "targetname", "win_stalemate");
 		DispatchKeyValue(ent_stalemate, "teamnum", "0");
 		SetVariantInt(0);
 		AcceptEntityInput(ent_stalemate, "SetTeam");
 		if (!DispatchSpawn(ent_stalemate))
-			PrintToServer("[DEATHRUN] ENTITY ERROR Failed to dispatch stalemate entity");
+			PrintToServer("[DEATHRUN] ERROR Failed to dispatch stalemate entity");
+	}
+	
+	ent_bluwin = CreateEntityByName("game_round_win");
+	
+	if (IsValidEntity(ent_bluwin))
+	{
+		DispatchKeyValue(ent_bluwin, "force_map_reset", "1");
+		DispatchKeyValue(ent_bluwin, "targetname", "win_blue");
+		DispatchKeyValue(ent_bluwin, "teamnum", "3");
+		SetVariantInt(3);
+		AcceptEntityInput(ent_bluwin, "SetTeam");
+		if (!DispatchSpawn(ent_bluwin))
+			PrintToServer("[DEATHRUN] ERROR Failed to dispatch blue win entity");
+	}
+	
+	ent_redwin = CreateEntityByName("game_round_win");
+	
+	if (IsValidEntity(ent_redwin))
+	{
+		DispatchKeyValue(ent_redwin, "force_map_reset", "1");
+		DispatchKeyValue(ent_redwin, "targetname", "win_red");
+		DispatchKeyValue(ent_redwin, "teamnum", "2");
+		SetVariantInt(2);
+		AcceptEntityInput(ent_redwin, "SetTeam");
+		if (!DispatchSpawn(ent_redwin))
+			PrintToServer("[DEATHRUN] ERROR Failed to dispatch red win entity");
 	}
 }
 
@@ -220,6 +371,9 @@ stock int CountTeamPlayers(team)
 //- Initializes a round
 stock InitializeRound()
 {
+	// Set HUD timer
+	timerTime = GetConVarFloat(g_drTimerTime);
+	
 	int max_points = -1; // Store the player ID with the most points
 	
 	// Get the first valid client
