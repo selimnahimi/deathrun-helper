@@ -9,11 +9,17 @@ This plugin is made for **Team Fortress 2**, and specifically for **Deathrun** m
     - Next round, the RED player with the most points gets to be BLU
     - As a BLU, your points are reset
 - A custom timer shown on the HUD
+- A config file for different cvar values for different maps
 
 # Commands:
 | Command | Description |
 | ------ | ------ |
 | !next | Open the queue menu to view queue and points |
+
+# Admin Commands:
+| Command | Description |
+| ------ | ------ |
+| sm_reloadmapconfig | Reload the map config |
 
 # CVars:
 | CVar | Default value | Description |

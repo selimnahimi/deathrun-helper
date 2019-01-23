@@ -10,6 +10,7 @@
 #include <tf2>
 #include <tf2_stocks>
 #include <sdkhooks>
+#include <kvizzle>
 
 // Constant variables
 #define TF_TEAM_BLU			3
@@ -88,6 +89,9 @@ public void OnPluginStart()
 	g_drTimerTime = CreateConVar("dr_timer_time", "300", "Timer start time");
 	g_drTimerTeam = CreateConVar("dr_timer_team", "2", "Which team should win when the timer runs out (0: STALEMATE, 1: RED, 2: BLU)");
 	
+	// A D M I N   C O M M A N D S //
+	RegAdminCmd("sm_reloadmapconfig", Command_DR_ReloadConfig, ADMFLAG_ROOT, "sm_reloadmapconfig");
+	
 	// C O M M A N D S //
 	RegConsoleCmd("jointeam", Command_Jointeam);
 	RegConsoleCmd("next", Command_PanelViewQueuePoints);
@@ -110,6 +114,7 @@ public void OnPluginStart()
 	
 	CreateTimer(1.0, UpdateTimers, _, TIMER_REPEAT);
 	Precache();
+	reloadConfig();
 }
 
 /*
@@ -125,6 +130,60 @@ stock Precache()
 	PrecacheSound(SOUND_3SEC, true);
 	PrecacheSound(SOUND_2SEC, true);
 	PrecacheSound(SOUND_1SEC, true);
+}
+
+/*
+ *	RELOAD CONFIG COMMAND
+*/
+//- Reloads the config file using kvizzle
+public Action:Command_DR_ReloadConfig(client, args)
+{
+	reloadConfig();
+	return Plugin_Handled;
+}
+
+/*
+ *	RELOAD CONFIG
+*/
+//- Reloads the config file using kvizzle
+public reloadConfig()
+{
+	// load config file
+	decl String:config[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, config, PLATFORM_MAX_PATH, "configs/dr_maps.cfg");
+	
+	char currmap[32];
+	GetCurrentMap(currmap, sizeof(currmap));
+	
+	new Handle:kv = KvizCreateFromFile("maps", config);
+	
+	if (kv != INVALID_HANDLE)
+	{
+		for (new i = 1; KvizExists(kv, ":nth-child(%i)", i); i++)
+		{
+			decl String:map[32], Float:ctimertime;
+			int cspeedenabled, cbluspeed, credspeed, cwinteam, ctimerenabled;
+			
+			KvizGetStringExact(kv, map, sizeof(map), ":nth-child(%i):key", i);
+			if (StrEqual(map, currmap, false))
+			{
+				if (KvizGetFloatExact(kv, ctimertime, ":nth-child(%i).roundtime", i))		SetConVarFloat(g_drTimerTime, ctimertime);
+				if (KvizGetNumExact(kv, ctimerenabled, ":nth-child(%i).timerenabled", i))	SetConVarInt(g_drTimerEnabled, ctimerenabled);
+				if (KvizGetNumExact(kv, cspeedenabled, ":nth-child(%i).speedenabled", i))	SetConVarInt(g_drSpeedEnabled, cspeedenabled);
+				if (KvizGetNumExact(kv, cbluspeed, ":nth-child(%i).speedblu", i))			SetConVarInt(g_drBluSpeed, cbluspeed);
+				if (KvizGetNumExact(kv, credspeed, ":nth-child(%i).speedred", i))			SetConVarInt(g_drRedSpeed, credspeed);
+				if (KvizGetNumExact(kv, cwinteam, ":nth-child(%i).winteam", i))				SetConVarInt(g_drTimerTeam, cwinteam);
+				PrintToServer("[DEATHRUN] Map config present and loaded.");
+				break;
+			}
+		}
+		
+		KvizClose(kv);
+	}
+	else
+	{
+		PrintToServer("[DEATHRUN] NOTE There is no map config present!");
+	}
 }
 
 /*
@@ -263,6 +322,7 @@ public teamplay_round_start(Handle:event, const String:name[], bool:dontBroadcas
 	InitializeRound();
 	CreateWinEntities();
 	roundStarted = false;
+	reloadConfig();
 }
 
 /*
